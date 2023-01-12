@@ -61,7 +61,7 @@ class Simplex:
     
     K                     = self.next_basic_vars()
     self.newranks         = self.ranks_of_b / self.ranks_of_A[:, K:K+1]
-    self.next_nonbasic_vars  = np.argmin(self.newranks,  axis = 1)
+    self.next_nonbasic_vars  = np.argmin(self.newranks)
     return self.next_nonbasic_vars
 
 
@@ -72,10 +72,20 @@ class Simplex:
     next_basic_vars    = self.next_basic_vars()
 
     #掃き出しはここから
-    self.condition[Simplex.next_nonbasic_vars] /= self.ranks_of_A[next_nonbasic_vars,next_basic_vars]
+    self.condition[next_nonbasic_vars] /= self.ranks_of_A[next_nonbasic_vars,next_basic_vars]
     self.objective                             /= self. ranks_of_A[next_nonbasic_vars,next_basic_vars]
+    #print(self.ranks_of_A[next_nonbasic_vars])
+    print(next_basic_vars)
 
-    return self.objective
+
+
+
+    return self.objective, self.condiiton[next_nonbasic_vars]
+
+
+
+    #return self.objective,self.ranks_of_A[next_nonbasic_vars]
+    #return  self.ranks_of_A[next_nonbasic_vars], next_nonbasic_vars
     #self.ranks_of_A -= 
 
 
@@ -95,7 +105,7 @@ if __name__ == "__main__":
   # while(simplex.optimizeable()):
   
   #print(simplex.is_replecable())
-  print(simplex.determin_basic_var())
+  #print(simplex.determin_basic_var())
   #print(simplex.next_nonbasic_vars())
  # print(simplex.optimizeable())
   print(simplex.reduce_row())
