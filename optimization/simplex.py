@@ -13,9 +13,9 @@ class Simplex:
     self.row_A         = self.ranks_of_A.shape[0] #Aの行数
     self.list_A        = self.ranks_of_A.shape[1] #Aの列数
     self.basic_var_ind = []                 #基底変数のインデックス
-    self.basic_var     = np.empty((self.row_cond,self.list_cond))#基底変数行列
+    self.basic_var     = np.empty((self.row_cond,self.list_cond), dtype=np.float64)#基底変数行列
     self.non_basic_ind = []                #非基底変数のインデックス（今はまだ空）
-    self.non_basic     = np.empty((self.row_cond, self.list_cond),dtype=int)#非基底変数行列
+    self.non_basic     = np.empty((self.row_cond, self.list_cond),dtype=np.float64)#非基底変数行列
     
 #線形独立なベクトルを選んでくる関数
   def determin_basic_var(self):
@@ -75,19 +75,23 @@ class Simplex:
     self.condition[next_nonbasic_vars] /= self.ranks_of_A[next_nonbasic_vars,next_basic_vars]
     self.objective                             /= self. ranks_of_A[next_nonbasic_vars,next_basic_vars]
     #print(self.ranks_of_A[next_nonbasic_vars])
-    print(next_basic_vars)
+    #print(next_basic_vars)
 
+    for row in range(self.row_cond):
+      if row != next_nonbasic_vars:
+        self.ranks_of_b[row] -= self.ranks_of_b[next_nonbasic_vars] * self.ranks_of_A[row, next_basic_vars]
+        self.ranks_of_A[row] -= self.ranks_of_A[next_nonbasic_vars] * self.ranks_of_A[row, next_basic_vars]
 
-
-
-    return self.objective, self.condiiton[next_nonbasic_vars]
-
-
-
+    #return self.objective, self.condition[next_nonbasic_vars]
     #return self.objective,self.ranks_of_A[next_nonbasic_vars]
     #return  self.ranks_of_A[next_nonbasic_vars], next_nonbasic_vars
     #self.ranks_of_A -= 
 
+  def solve(self):
+    self.determin_basic_var()
+
+    while self.optimizeable():
+      self.reduce_row():
 
 
 
@@ -95,10 +99,10 @@ class Simplex:
 
 if __name__ == "__main__":
     
-  condition  = np.array([[5,2,1,0,30],[1,2,0,1,14]]) #条件関数
-  objective  = np.array([-5,-4,0,0,0])  #目的関数
-  ranks_of_A = np.array([[5,2,1,0],[1,2,0,1]])#条件関数の右辺
-  ranks_of_b = np.array([[30],[14]])          #条件関数の左辺だけ抽出したもの
+  condition  = np.array([[5.0,2.0,1.0,0,30.0],[1.0, 2.0 ,0, 1.0 ,14.0 ]]) #条件関数
+  objective  = np.array([-5.0 ,-4.0 ,0,0,0])  #目的関数
+  ranks_of_A = np.array([[5.0 ,2.0, 1.0,0], [1.0 ,2.0 ,0, 1.0]])#条件関数の右辺
+  ranks_of_b = np.array([[30.0],[14.0]])          #条件関数の左辺だけ抽出したもの
 
   simplex = Simplex(condition, objective, ranks_of_A, ranks_of_b)
   
@@ -108,4 +112,5 @@ if __name__ == "__main__":
   #print(simplex.determin_basic_var())
   #print(simplex.next_nonbasic_vars())
  # print(simplex.optimizeable())
-  print(simplex.reduce_row())
+  #print(simplex.reduce_row())
+  print(simplex.solve())
