@@ -16,16 +16,15 @@ class Simplex:
     self.basic_var     = np.empty((self.row_cond,self.list_cond), dtype=np.float64)#基底変数行列
     self.non_basic_ind = []                #非基底変数のインデックス（今はまだ空）
     self.non_basic     = np.empty((self.row_cond, self.list_cond),dtype=np.float64)#非基底変数行列
+    self.ans           = 0    #最終的に返す数値(最適解)
     
 #線形独立なベクトルを選んでくる関数
   def determin_basic_var(self):
     self.basic_var         = self.ranks_of_A[:, 0:1]  #基底変数に条件関数の1列目を付け加えている(後ろのスライスをミスると、1次元になってしまいエラーをはくので注意)
     new_judgement_ranks    = self.basic_var
 
-
     for i in range(1,self.list_A):
       new_judgement_ranks  = np.hstack((self.basic_var,self.ranks_of_A[:,i:i+1]))   #列を追加して判定用行列に付け加えている
-
 
       #判定用の行列のrankに新たな列を付け加えたもののrankが、その行列全体の列数と同じになる限り付け加え続ける
       #このループが終わった後には、線型独立のものしか残らない（線型従属なものを加えてしまった場合、rank=列数になることはありえないため）
@@ -33,13 +32,11 @@ class Simplex:
         self.basic_var_ind.append(i)
         #judgement_ranks  = np.hstack((judgement_ranks,self.condition[i]))
         self.basic_var   = np.hstack((self.basic_var,self.ranks_of_A[:,i:i+1]))
-
-      else:
       
+      else:
         if len(self.non_basic_ind)==0:
           self.non_basic_ind.append(i)
           self.non_basic = self.ranks_of_A[:,i:i+1]
-
         else:
           self.non_basic = np.hstack((self.non_basic,self.ranks_of_A[:,i:i+1]))
           self.non_basic_ind.append(i)
@@ -56,42 +53,50 @@ class Simplex:
   def next_basic_vars(self):    #目的関数の中で最小の列の添字を返す。これが次の基底変数となる。
     return np.argmin(self.objective)
 
-
   def next_nonbasic_vars(self):  #b/Aが最小の行の添字を返す。これとnext_basic_varsを入れ替えてあげる。
-    
     K                     = self.next_basic_vars()
     self.newranks         = self.ranks_of_b / self.ranks_of_A[:, K:K+1]
     self.next_nonbasic_vars  = np.argmin(self.newranks)
     return self.next_nonbasic_vars
-
-
 
   def reduce_row(self):    #非基底変数と基底変数の入れ替え＆掃き出し
 
     next_nonbasic_vars = self.next_nonbasic_vars()
     next_basic_vars    = self.next_basic_vars()
 
-    #掃き出しはここから
+    #掃き出し準備
     self.condition[next_nonbasic_vars] /= self.ranks_of_A[next_nonbasic_vars,next_basic_vars]
-    self.objective                             /= self. ranks_of_A[next_nonbasic_vars,next_basic_vars]
-    #print(self.ranks_of_A[next_nonbasic_vars])
-    #print(next_basic_vars)
+    self.ranks_of_b[next_nonbasic_vars] /= self.ranks_of_A[next_nonbasic_vars,next_basic_vars]
+    #self.objective                             /= self. ranks_of_A[next_nonbasic_vars,next_basic_vars]
+    #self.ans += self.ranks_of_b[next_nonbasic_vars] * self.objective[next_basic_vars]
+    #print(self.objective)
+    #self.objective -= (self.condition[next_nonbasic_vars] * self.objective)
+    #print(self.objective)
 
+    #掃き出しはここから
     for row in range(self.row_cond):
       if row != next_nonbasic_vars:
-        self.ranks_of_b[row] -= self.ranks_of_b[next_nonbasic_vars] * self.ranks_of_A[row, next_basic_vars]
-        self.ranks_of_A[row] -= self.ranks_of_A[next_nonbasic_vars] * self.ranks_of_A[row, next_basic_vars]
-
-    #return self.objective, self.condition[next_nonbasic_vars]
-    #return self.objective,self.ranks_of_A[next_nonbasic_vars]
-    #return  self.ranks_of_A[next_nonbasic_vars], next_nonbasic_vars
-    #self.ranks_of_A -= 
+        self.ranks_of_b[row] -= self.ranks_of_b[next_nonbasic_vars] * self.condition[row, next_basic_vars]
+        self.condition[row]  -= self.condition[next_nonbasic_vars]  * self.condition[row, next_basic_vars]
+        self.objective       -= self.objective[next_nonbasic_vars]  * self.condition[next_nonbasic_vars]
+        #print(self.condition[next_nonbasic_vars])
+        #print(self.condition, self.ranks_of_b)
+        self.ans += self.objective[-1]
 
   def solve(self):
     self.determin_basic_var()
 
-    while self.optimizeable():
-      self.reduce_row():
+    while True:
+      
+      if self.optimizeable():
+        self.reduce_row()
+        print('現在の数値: ', self.ans)
+        print(self.optimizeable())
+
+      else:
+        break
+    
+    return self.ans
 
 
 
@@ -99,7 +104,7 @@ class Simplex:
 
 if __name__ == "__main__":
     
-  condition  = np.array([[5.0,2.0,1.0,0,30.0],[1.0, 2.0 ,0, 1.0 ,14.0 ]]) #条件関数
+  condition  = np.array([[5.0, 2.0, 1.0 ,0, 30.0],[1.0, 2.0 ,0, 1.0 ,14.0 ]]) #条件関数
   objective  = np.array([-5.0 ,-4.0 ,0,0,0])  #目的関数
   ranks_of_A = np.array([[5.0 ,2.0, 1.0,0], [1.0 ,2.0 ,0, 1.0]])#条件関数の右辺
   ranks_of_b = np.array([[30.0],[14.0]])          #条件関数の左辺だけ抽出したもの
