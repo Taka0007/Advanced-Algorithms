@@ -1,3 +1,5 @@
 link of colab 
 
-simplex----https://colab.research.google.com/drive/1tyPyCrBwgRnb12xRBk8qCF6F0l7tyzU7?usp=sharing
+
+simplex（単体法）--------
+https://colab.research.google.com/drive/1tyPyCrBwgRnb12xRBk8qCF6F0l7tyzU7?usp=sharing
