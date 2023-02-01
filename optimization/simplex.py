@@ -45,7 +45,9 @@ class Simplex:
 
 
   def optimizeable(self):   #最適化の余地があるかを判定。すでに最適化されていたらFalseを返す
-    if np.amin(self.objective) > 0:
+    #print(np.amin(self.objective))
+    
+    if np.amin(self.objective) >= 0:
       return False
     else:
       return True
@@ -53,7 +55,7 @@ class Simplex:
   def next_basic_vars(self):    #目的関数の中で最小の列の添字を返す。これが次の基底変数となる。
     return np.argmin(self.objective)
 
-  def next_nonbasic_vars(self):  #b/Aが最小の行の添字を返す。これとnext_basic_varsを入れ替えてあげる。
+  def next_nonbasic(self):  #b/Aが最小の行の添字を返す。これとnext_basic_varsを入れ替えてあげる。
     K                     = self.next_basic_vars()
     self.newranks         = self.ranks_of_b / self.ranks_of_A[:, K:K+1]
     self.next_nonbasic_vars  = np.argmin(self.newranks)
@@ -61,12 +63,13 @@ class Simplex:
 
   def reduce_row(self):    #非基底変数と基底変数の入れ替え＆掃き出し
 
-    next_nonbasic_vars = self.next_nonbasic_vars()
+    nonbasic_var       = self.next_nonbasic()
+    #print(self.next_nonbasic_vars)
     next_basic_vars    = self.next_basic_vars()
 
     #掃き出し準備
-    self.condition[next_nonbasic_vars] /= self.ranks_of_A[next_nonbasic_vars,next_basic_vars]
-    self.ranks_of_b[next_nonbasic_vars] /= self.ranks_of_A[next_nonbasic_vars,next_basic_vars]
+    self.condition[nonbasic_var] /= self.ranks_of_A[nonbasic_var,next_basic_vars]
+    self.ranks_of_b[nonbasic_var] /= self.ranks_of_A[(nonbasic_var,next_basic_vars)]
     #self.objective                             /= self. ranks_of_A[next_nonbasic_vars,next_basic_vars]
     #self.ans += self.ranks_of_b[next_nonbasic_vars] * self.objective[next_basic_vars]
     #print(self.objective)
@@ -75,29 +78,31 @@ class Simplex:
 
     #掃き出しはここから
     for row in range(self.row_cond):
-      if row != next_nonbasic_vars:
-        self.ranks_of_b[row] -= self.ranks_of_b[next_nonbasic_vars] * self.condition[row, next_basic_vars]
-        self.condition[row]  -= self.condition[next_nonbasic_vars]  * self.condition[row, next_basic_vars]
-        self.objective       -= self.objective[next_nonbasic_vars]  * self.condition[next_nonbasic_vars]
+      if row != (nonbasic_var):
+        self.ranks_of_b[row] -= self.ranks_of_b[nonbasic_var] * self.condition[row, next_basic_vars]
+        self.condition[row]  -= self.condition[nonbasic_var]  * self.condition[row, next_basic_vars]
+        self.objective       -= self.objective[nonbasic_var]  * self.condition[nonbasic_var]
+        #print(np.amin(self.objective))
         #print(self.condition[next_nonbasic_vars])
         #print(self.condition, self.ranks_of_b)
         self.ans += self.objective[-1]
+        #print(self.objective)
 
   def solve(self):
     self.determin_basic_var()
+    self.optimizeable()
 
     while True:
-      
+
+      print('Now loading…')
       if self.optimizeable():
         self.reduce_row()
         print('現在の数値: ', self.ans)
-        print(self.optimizeable())
 
       else:
+        print('処理終了')
+        print(self.optimizeable)
         break
-    
-    return self.ans
-
 
 
 
