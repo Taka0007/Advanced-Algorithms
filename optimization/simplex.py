@@ -1,3 +1,4 @@
+from IPython.core.autocall import ZMQExitAutocall
 # @title Simplex method
 
 import numpy as np
@@ -57,47 +58,58 @@ class Simplex:
 
   def next_nonbasic(self):  #b/Aが最小の行の添字を返す。これとnext_basic_varsを入れ替えてあげる。
     K                     = self.next_basic_vars()
+    print('K=',K)
     self.newranks         = self.ranks_of_b / self.ranks_of_A[:, K:K+1]
+    print('rankA',self.ranks_of_A)
+    print('condition is',self.condition)
     self.next_nonbasic_vars  = np.argmin(self.newranks)
     return self.next_nonbasic_vars
 
   def reduce_row(self):    #非基底変数と基底変数の入れ替え＆掃き出し
 
     nonbasic_var       = self.next_nonbasic()
-    #print(self.next_nonbasic_vars)
     next_basic_vars    = self.next_basic_vars()
+    print('nonbasic=', nonbasic_var)
+    print('nextbasic=', next_basic_vars)
 
     #掃き出し準備
-    self.condition[nonbasic_var] /= self.ranks_of_A[nonbasic_var,next_basic_vars]
     self.ranks_of_b[nonbasic_var] /= self.ranks_of_A[(nonbasic_var,next_basic_vars)]
-    #self.objective                             /= self. ranks_of_A[next_nonbasic_vars,next_basic_vars]
-    #self.ans += self.ranks_of_b[next_nonbasic_vars] * self.objective[next_basic_vars]
-    #print(self.objective)
-    #self.objective -= (self.condition[next_nonbasic_vars] * self.objective)
-    #print(self.objective)
+    self.ranks_of_A[nonbasic_var] /= self.ranks_of_A[nonbasic_var,next_basic_vars]
+    self.condition[nonbasic_var] /= self.ranks_of_A[nonbasic_var,next_basic_vars]
+    print('objective', self.objective)
+    self.objective  -=  self.ranks_of_A[nonbasic_var] * self.objective[next_basic_vars]
+    print('afterobjective', self.objective)    
+   
 
     #掃き出しはここから
     for row in range(self.row_cond):
       if row != (nonbasic_var):
-        self.ranks_of_b[row] -= self.ranks_of_b[nonbasic_var] * self.condition[row, next_basic_vars]
-        self.condition[row]  -= self.condition[nonbasic_var]  * self.condition[row, next_basic_vars]
-        self.objective       -= self.objective[nonbasic_var]  * self.condition[nonbasic_var]
-        #print(np.amin(self.objective))
-        #print(self.condition[next_nonbasic_vars])
-        #print(self.condition, self.ranks_of_b)
-        self.ans += self.objective[-1]
+
+        self.ranks_of_b[row] -= self.ranks_of_b[nonbasic_var] * self.ranks_of_A[row, next_basic_vars]
+        self.ranks_of_A[row] -= self.ranks_of_A[nonbasic_var] * self.ranks_of_A[row, next_basic_vars]
+        #self.condition[row]  -= self.condition[nonbasic_var]  * self.condition[row, next_basic_vars]
+        #self.objective       -= self.objective[nonbasic_var]  * self.condition[nonbasic_var]
+        #self.ans += self.objective * ((self.ranks_of_A).T)
+        #print('rankb, condition, rankA, objective', self.ranks_of_b, self.condition, self.ranks_of_A, self.objective)
         #print(self.objective)
 
   def solve(self):
     self.determin_basic_var()
     self.optimizeable()
 
-    while True:
+    #while True:
+    for i in range(2):
 
       print('Now loading…')
-      if self.optimizeable():
+      if self.optimizeable() and i==0:
         self.reduce_row()
-        print('現在の数値: ', self.ans)
+        print('一回目の数値: ', self.ans)
+
+      elif self.optimizeable() and i==1:
+        self.reduce_row()
+        print('2回目の数値：', self.ans)
+        
+        
 
       else:
         print('処理終了')
@@ -110,9 +122,16 @@ class Simplex:
 if __name__ == "__main__":
     
   condition  = np.array([[5.0, 2.0, 1.0 ,0, 30.0],[1.0, 2.0 ,0, 1.0 ,14.0 ]]) #条件関数
+  objective  = np.array([-5.0 ,-4.0 ,0,0])  #目的関数
+  ranks_of_A = np.array([[5.0 ,2.0, 1.0,0], [1.0 ,2.0 ,0, 1.0]])#条件関数の右辺
+  ranks_of_b = np.array([[30.0],[14.0]])          #条件関数の左辺だけ抽出したもの
+
+  '''
+  condition  = np.array([[5.0, 2.0, 1.0 ,0, 30.0],[1.0, 2.0 ,0, 1.0 ,14.0 ]]) #条件関数
   objective  = np.array([-5.0 ,-4.0 ,0,0,0])  #目的関数
   ranks_of_A = np.array([[5.0 ,2.0, 1.0,0], [1.0 ,2.0 ,0, 1.0]])#条件関数の右辺
   ranks_of_b = np.array([[30.0],[14.0]])          #条件関数の左辺だけ抽出したもの
+  '''
 
   simplex = Simplex(condition, objective, ranks_of_A, ranks_of_b)
   
